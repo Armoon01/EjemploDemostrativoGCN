@@ -89,6 +89,17 @@ A continuación se muestra una imagen de la visualización del grafo y los resul
 
 ---
 
+## 📦 Instalación de dependencias
+
+Antes de ejecutar la aplicación, instala las dependencias necesarias.  
+En la terminal, dentro de la carpeta del proyecto, ejecuta:
+
+```sh
+pip install -r requirements.txt
+```
+
+Esto instalará automáticamente todas las librerías necesarias para que el proyecto funcione correctamente.
+
 ## 👨‍💻 Autores
 
 - **Andy José Luna Izaguirre**
