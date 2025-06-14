@@ -1,5 +1,5 @@
-flask
-werkzeug
-Pillow
 torch
+torch-geometric
+plotly
+networkx
 torchvision
