@@ -4,79 +4,88 @@
 
 ### a. 📝 Descripción del Problema
 
-Este proyecto presenta una **clasificación de nodos** utilizando redes neuronales convolucionales sobre grafos (**Graph Convolutional Networks, GCN**).  
-El objetivo es predecir la etiqueta o clase de cada nodo en un grafo, basado en sus características y su conectividad. Este tipo de problema es común en áreas como análisis de redes sociales, biología computacional y sistemas de recomendación.
+El problema abordado en este ejemplo es la **clasificación de nodos** en un grafo. El objetivo es predecir la categoría temática de artículos científicos en el dataset Cora, donde cada nodo representa un artículo y las aristas representan citas entre ellos. La tarea consiste en asignar correctamente la clase de cada nodo utilizando tanto sus atributos como la estructura de conexiones del grafo.
 
 ---
 
 ### b. 📚 Obtención del Dataset
 
-Para este ejemplo se utiliza el dataset **Cora**, un conjunto de datos clásico de citaciones científicas en el ámbito de aprendizaje de máquinas.  
-Cada nodo representa un artículo y las aristas indican citaciones entre ellos.  
-El dataset puede obtenerse automáticamente usando librerías como [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/) o [DGL](https://www.dgl.ai/), por ejemplo:
+Se utiliza el conocido dataset **Cora**, disponible en la librería PyTorch Geometric. Cora es un grafo de citas académicas donde cada nodo corresponde a un artículo científico con un vector de características y una etiqueta de clase. El dataset se descarga y prepara automáticamente con el siguiente código en Python:
 
 ```python
 from torch_geometric.datasets import Planetoid
-dataset = Planetoid(root='/tmp/Cora', name='Cora')
+dataset = Planetoid(root='data/Cora', name='Cora')
+data = dataset[0]
 ```
 
 ---
 
 ### c. ⚙️ Configuración de la GCN
 
-El modelo GCN se configura con las siguientes características principales:
-
-- **Capas:** Dos capas convolucionales sobre grafos.
-- **Función de activación:** ReLU.
-- **Regularización:** Dropout y weight decay para evitar sobreajuste.
-- **Optimizador:** Adam.
-- **Entrenamiento:** Se entrena para minimizar la pérdida de clasificación sobre los nodos de entrenamiento.
-
-Ejemplo de definición del modelo (usando PyTorch Geometric):
+El modelo implementado es una **Graph Convolutional Network (GCN)**, basada en la propuesta original de Kipf y Welling (2017). Esta red consta de dos capas convolucionales sobre grafos, permitiendo que cada nodo agregue información de sus vecinos. La arquitectura utilizada es la siguiente:
 
 ```python
-import torch
-import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-
 class GCN(torch.nn.Module):
     def __init__(self, num_features, num_classes):
         super(GCN, self).__init__()
         self.conv1 = GCNConv(num_features, 16)
         self.conv2 = GCNConv(16, num_classes)
-
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        x = F.relu(self.conv1(x, edge_index))
-        x = F.dropout(x, training=self.training)
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
         x = self.conv2(x, edge_index)
         return F.log_softmax(x, dim=1)
 ```
 
 ---
 
-### d. 🤖 Descripción del Algoritmo e Implementación
+### d. 🤖 Descripción del algoritmo e implementación en Python
 
-El algoritmo implementado sigue estos pasos:
+El flujo del algoritmo y la implementación en Python es el siguiente:
 
-1. **Carga del dataset** y conversión a formato adecuado para el modelo.
-2. **Definición del modelo GCN** como una secuencia de capas convolucionales sobre grafos.
-3. **Entrenamiento:** 
-   - Se propagan los datos por la GCN.
-   - Se calcula la función de pérdida (cross-entropy).
-   - Se actualizan los pesos del modelo mediante backpropagation.
-4. **Evaluación:** 
-   - Se mide la precisión en el conjunto de prueba (nodos no vistos durante el entrenamiento).
+1. **Carga y preparación de datos:** Se descarga y procesa el dataset Cora.
+2. **Definición del modelo:** Se implementa la clase `GCN` con dos capas de convolución.
+3. **Configuración de entrenamiento:** Se selecciona el dispositivo (CPU o GPU), se crea el modelo y se define el optimizador Adam.
+4. **Entrenamiento:** El modelo se entrena durante 200 épocas usando los nodos marcados para entrenamiento y la función de pérdida de log-likelihood negativa.
+5. **Evaluación:** Se calcula la precisión sobre los primeros 100 nodos y se obtienen las predicciones.
+6. **Visualización:** Se generan gráficos interactivos con los resultados.
 
-El código está documentado línea por línea para facilitar su comprensión y replicación.
+Fragmento de código relevante:
+
+```python
+# Entrenamiento del modelo
+model.train()
+for epoch in range(200):
+    optimizer.zero_grad()
+    out = model(data)
+    loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+# Evaluación de los primeros 100 nodos
+model.eval()
+with torch.no_grad():
+    logits = model(data)
+    pred = logits.argmax(dim=1)
+correct_100 = int((pred[:100] == data.y[:100]).sum())
+acc_100 = correct_100 / 100
+print(f"Precisión (primeros 100 nodos): {acc_100*100:.2f}%")
+```
 
 ---
 
-### 🖼️ Visualización
+### 🖼️ Visualización y Análisis de Resultados
 
-A continuación se muestra una imagen de la visualización del grafo y/o los resultados de la clasificación de nodos usando la GCN:
+A continuación se muestra una imagen de la visualización del grafo y los resultados de la clasificación de nodos usando la GCN:
 
 ![Visualización de GCN](image.png)
+
+**Análisis:**
+- Se observa una correspondencia perfecta entre los patrones y colores en ambas gráficas, lo que indica que el modelo GCN aprendió correctamente la asignación de clases en este conjunto de nodos (precisión del 100%).
+- Los nodos con colores similares tienden a agruparse, lo que sugiere la existencia de comunidades o grupos temáticos dentro del grafo y la capacidad del modelo para capturar estas estructuras.
+- Este tipo de visualización es útil para validar visualmente la calidad de la clasificación y comunicar los resultados a distintos públicos.
 
 ---
 
@@ -91,21 +100,13 @@ A continuación se muestra una imagen de la visualización del grafo y/o los res
 
 ---
 
-## 📖 Referencias y fuentes
+## 📖 Referencias
 
-- [Kipf, T.N. & Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks.](https://arxiv.org/abs/1609.02907)
-- [PyTorch Geometric Documentation](https://pytorch-geometric.readthedocs.io/)
-- [DGL Documentation](https://docs.dgl.ai/)
+- PyTorch Geometric. (s.f.). GCN Example Colab. Recuperado el 14 de junio de 2025, de [https://pytorch-geometric.readthedocs.io/en/latest/notes/colabs.html#gcn-on-cora-citeseer-pubmed](https://pytorch-geometric.readthedocs.io/en/latest/notes/colabs.html#gcn-on-cora-citeseer-pubmed)
+- Kipf, T. N., & Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks. International Conference on Learning Representations (ICLR). [https://arxiv.org/abs/1609.02907](https://arxiv.org/abs/1609.02907)
 
 ---
 
 ## 🎬 Demo
 
 Incluye un ejemplo demostrativo en el archivo principal del repositorio.  
-
----
-
-## 📄 Licencia
-
-Este proyecto se entrega con fines educativos.  
-Por favor, cita a los autores y las fuentes originales en cualquier reutilización.
